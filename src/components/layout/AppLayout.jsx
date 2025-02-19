@@ -174,7 +174,9 @@ const AppLayout = () => (WrappedComponent) => {
             {chatDetails?.chat?.groupChat ? (
               <GroupInfo group={chatDetails.chat} />
             ) : (
-              <Profile user={chatUser} />
+              <div style={{ color: 'white', fontSize: '1.5rem' }}>
+                Profile Component
+              </div>
             )}
           </Grid>
         </Grid>
