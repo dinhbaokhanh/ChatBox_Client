@@ -1,90 +1,181 @@
+/* eslint-disable react/prop-types */
 import {
+  AppBar,
+  Avatar,
+  Backdrop,
+  Badge,
   Box,
-  Dialog,
-  DialogTitle,
-  InputAdornment,
-  List,
-  Stack,
-  TextField,
+  IconButton,
+  Toolbar,
+  Tooltip,
+  Typography,
 } from '@mui/material'
-import React, { useEffect, useState } from 'react'
-import { useInputValidation } from '6pp'
-import { Search as SearchIcon } from '@mui/icons-material'
-import UserItem from '../shared/UserItem'
-import { useDispatch, useSelector } from 'react-redux'
-import { setIsSearch } from '../../redux/reducers/misc.js'
+import React, { Suspense, lazy } from 'react'
+import { orange } from '../../constants/color.js'
 import {
-  useLazySearchUserQuery,
-  useSendFriendRequestMutation,
-} from '../../redux/api/api.js'
-import { useAsyncMutation } from '../../hooks/hook.jsx'
+  Add as AddIcon,
+  Menu as MenuIcon,
+  Search as SearchIcon,
+  Group as GroupIcon,
+  Logout as LogoutIcon,
+  Notifications as NotificationsIcon,
+} from '@mui/icons-material'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { server } from '../../constants/config.js'
+import toast from 'react-hot-toast'
+import { useDispatch, useSelector } from 'react-redux'
+import { userNotExists } from '../../redux/reducers/auth'
+import {
+  setIsMobile,
+  setIsNewGroup,
+  setIsNotification,
+  setIsSearch,
+} from '../../redux/reducers/misc.js'
+import { resetNotification } from '../../redux/reducers/chat.js'
+import { transformImage } from '../../lib/features.js'
 
-const Search = () => {
-  const { isSearch } = useSelector((state) => state.misc)
+const SearchDialog = lazy(() => import('../specific/Search'))
+const NotificationDialog = lazy(() => import('../specific/Notification'))
+const NewGroupDialog = lazy(() => import('../specific/NewGroup'))
 
-  const [searchUser] = useLazySearchUserQuery()
-  const [sendFriendRequest, isLoadingSendFriendRequest] = useAsyncMutation(
-    useSendFriendRequestMutation
-  )
-
+const Header = () => {
+  const navigate = useNavigate()
   const dispatch = useDispatch()
 
-  const search = useInputValidation('')
+  const { user } = useSelector((state) => state.auth)
+  const { isSearch, isNotification, isNewGroup } = useSelector(
+    (state) => state.misc
+  )
+  const { notificationCount } = useSelector((state) => state.chat)
 
-  const [users, setUsers] = useState([])
+  const handleMobile = () => dispatch(setIsMobile(true))
+  const openSearch = () => dispatch(setIsSearch(true))
+  const openNewGroup = () => dispatch(setIsNewGroup(true))
 
-  const addFriendHandler = async (id) => {
-    await sendFriendRequest('Sending friend request ... ', { userId: id })
+  const openNotification = () => {
+    dispatch(setIsNotification(true))
+    dispatch(resetNotification())
   }
 
-  const searchCloseHandler = () => dispatch(setIsSearch(false))
+  const navigateGroup = () => {
+    navigate('/group')
+  }
 
-  useEffect(() => {
-    const timeOutId = setTimeout(() => {
-      searchUser(search.value)
-        .then(({ data }) => setUsers(data.users))
-        .catch((e) => console.log(e))
-    }, 1000)
-
-    return () => {
-      clearTimeout(timeOutId)
+  const logoutHandler = async () => {
+    try {
+      const { data } = await axios.get(`${server}/api/v1/user/logout`, {
+        withCredentials: true,
+      })
+      dispatch(userNotExists())
+      toast.success(data.message)
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Something went wrong')
     }
-  }, [search.value])
+  }
 
   return (
-    <Dialog open={isSearch} onClose={searchCloseHandler}>
-      <Stack p={'2rem'} direction={'column'} width={'27rem'}>
-        <DialogTitle textAlign={'center'}>Find People</DialogTitle>
-        <TextField
-          label=""
-          value={search.value}
-          onChange={search.changeHandler}
-          variant="outlined"
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+    <>
+      <Box sx={{ flexGrow: 1 }} height={'4rem'}>
+        <AppBar position="static" sx={{ bgcolor: orange }}>
+          <Toolbar
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconButton
+                color="inherit"
+                onClick={handleMobile}
+                sx={{ display: { xs: 'block', sm: 'none' } }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Typography
+                variant="h6"
+                sx={{ display: { xs: 'none', sm: 'block' } }}
+              >
+                Chat Box
+              </Typography>
+            </Box>
 
-        <Box sx={{ maxHeight: '50vh', overflow: 'auto' }}>
-          <List>
-            {users.map((i) => (
-              <UserItem
-                user={i}
-                key={i._id}
-                handler={addFriendHandler}
-                handlerIsLoading={isLoadingSendFriendRequest}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconBtn
+                title={'Search'}
+                icon={<SearchIcon />}
+                onClick={openSearch}
               />
-            ))}
-          </List>
-        </Box>
-      </Stack>
-    </Dialog>
+              <IconBtn
+                title={'New Group'}
+                icon={<AddIcon />}
+                onClick={openNewGroup}
+              />
+              <IconBtn
+                title={'Manage Groups'}
+                icon={<GroupIcon />}
+                onClick={navigateGroup}
+              />
+              <IconBtn
+                title={'Notifications'}
+                icon={<NotificationsIcon />}
+                onClick={openNotification}
+                value={notificationCount}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="body1" fontWeight="bold">
+                {user.username.charAt(0).toUpperCase() + user.username.slice(1)}
+              </Typography>
+              <Avatar
+                src={transformImage(user?.avatar?.url)}
+                alt={user?.username}
+                sx={{ width: 40, height: 40 }}
+              />
+              <IconBtn
+                title={'Logout'}
+                icon={<LogoutIcon />}
+                onClick={logoutHandler}
+              />
+            </Box>
+          </Toolbar>
+        </AppBar>
+      </Box>
+      {isSearch && (
+        <Suspense fallback={<Backdrop open />}>
+          <SearchDialog />
+        </Suspense>
+      )}
+      {isNotification && (
+        <Suspense fallback={<Backdrop open />}>
+          <NotificationDialog />
+        </Suspense>
+      )}
+      {isNewGroup && (
+        <Suspense fallback={<Backdrop open />}>
+          <NewGroupDialog />
+        </Suspense>
+      )}
+    </>
   )
 }
 
-export default Search
+const IconBtn = ({ title, icon, onClick, value }) => {
+  return (
+    <Tooltip title={title}>
+      <IconButton color="inherit" size="large" onClick={onClick}>
+        {value ? (
+          <Badge badgeContent={value} color="error">
+            {icon}
+          </Badge>
+        ) : (
+          icon
+        )}
+      </IconButton>
+    </Tooltip>
+  )
+}
+
+export default Header

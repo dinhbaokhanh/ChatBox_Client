@@ -44,10 +44,10 @@ const Header = () => {
   const dispatch = useDispatch()
 
   const { user } = useSelector((state) => state.auth)
-  const { isSearch, isNotification } = useSelector((state) => state.misc)
+  const { isSearch, isNotification, isNewGroup } = useSelector(
+    (state) => state.misc
+  )
   const { notificationCount } = useSelector((state) => state.chat)
-
-  const { isNewGroup } = useSelector((state) => state.misc)
 
   const handleMobile = () => dispatch(setIsMobile(true))
   const openSearch = () => dispatch(setIsSearch(true))
@@ -77,32 +77,31 @@ const Header = () => {
   return (
     <>
       <Box sx={{ flexGrow: 1 }} height={'4rem'}>
-        <AppBar
-          position="static"
-          sx={{
-            bgcolor: orange,
-          }}
-        >
-          <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography
-              variant="h6"
-              sx={{ display: { xs: 'none', sm: 'block' } }}
-            >
-              Chat Box
-            </Typography>
-            <Box
-              sx={{
-                display: { xs: 'block', sm: 'none' },
-              }}
-            >
-              <IconButton color="inherit" onClick={handleMobile}>
+        <AppBar position="static" sx={{ bgcolor: orange }}>
+          <Toolbar
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconButton
+                color="inherit"
+                onClick={handleMobile}
+                sx={{ display: { xs: 'block', sm: 'none' } }}
+              >
                 <MenuIcon />
               </IconButton>
+              <Typography
+                variant="h6"
+                sx={{ display: { xs: 'none', sm: 'block' } }}
+              >
+                Chat Box
+              </Typography>
             </Box>
 
-            <Box sx={{ flexGrow: 0.97 }} />
-
-            <Box sx={{ display: 'flex', gap: 1, mr: 'auto', ml: -4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <IconBtn
                 title={'Search'}
                 icon={<SearchIcon />}
@@ -126,17 +125,15 @@ const Header = () => {
               />
             </Box>
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, ml: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="body1" fontWeight="bold">
                 {user.username.charAt(0).toUpperCase() + user.username.slice(1)}
               </Typography>
-
               <Avatar
                 src={transformImage(user?.avatar?.url)}
                 alt={user?.username}
                 sx={{ width: 40, height: 40 }}
               />
-
               <IconBtn
                 title={'Logout'}
                 icon={<LogoutIcon />}
